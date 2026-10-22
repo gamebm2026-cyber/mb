@@ -1,0 +1,963 @@
+{
+ "cells": [
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "# 🖥️ Cloud Desktop — VS Code\n",
+    "\n",
+    "Run an XFCE4 desktop directly inside VS Code / GitHub Codespaces and access it via browser or VS Code's native port forwarding.\n",
+    "\n",
+    "**Stack:** `Xvfb` + `XFCE4` + `x11vnc` + `noVNC` + `localhost.run` + `Brave Browser`"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 📦 Cell 1 — Install Dependencies\n",
+    "> Uses `sudo` for non-root VS Code environments."
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 17,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "✅ Core packages ready!\n"
+     ]
+    }
+   ],
+   "source": [
+    "!sudo DEBIAN_FRONTEND=noninteractive apt-get update -qq\n",
+    "!sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq xfce4 x11vnc xvfb dbus-x11 novnc websockify openssh-client mesa-utils pciutils 2>/dev/null\n",
+    "print('✅ Core packages ready!')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 🌐 Cell 2 — Install Brave Browser"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Requirement already satisfied: torch in ./.venv/lib/python3.14/site-packages (2.14.1)\n",
+      "Requirement already satisfied: filelock in ./.venv/lib/python3.14/site-packages (from torch) (4.2.4)\n",
+      "Requirement already satisfied: typing-extensions>=4.10.0 in ./.venv/lib/python3.14/site-packages (from torch) (4.16.0)\n",
+      "Requirement already satisfied: setuptools>=77.0.3 in ./.venv/lib/python3.14/site-packages (from torch) (84.2.1)\n",
+      "Requirement already satisfied: sympy>=1.13.3 in ./.venv/lib/python3.14/site-packages (from torch) (1.14.0)\n",
+      "Requirement already satisfied: networkx>=2.5.1 in ./.venv/lib/python3.14/site-packages (from torch) (3.7)\n",
+      "Requirement already satisfied: jinja2 in ./.venv/lib/python3.14/site-packages (from torch) (3.1.6)\n",
+      "Requirement already satisfied: fsspec>=0.8.5 in ./.venv/lib/python3.14/site-packages (from torch) (2026.9.0)\n",
+      "Requirement already satisfied: cuda-toolkit==13.0.3 in ./.venv/lib/python3.14/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.3; platform_system == \"Linux\"->torch) (13.0.3.0)\n",
+      "Requirement already satisfied: cuda-bindings<14,>=13.0.3 in ./.venv/lib/python3.14/site-packages (from torch) (13.4.4)\n",
+      "Requirement already satisfied: nvidia-cudnn-cu13==9.24.0.43 in ./.venv/lib/python3.14/site-packages (from torch) (9.24.0.43)\n",
+      "Requirement already satisfied: nvidia-cusparselt-cu13==0.8.1 in ./.venv/lib/python3.14/site-packages (from torch) (0.8.1)\n",
+      "Requirement already satisfied: nvidia-nccl-cu13==2.30.7 in ./.venv/lib/python3.14/site-packages (from torch) (2.30.7)\n",
+      "Requirement already satisfied: nvidia-nvshmem-cu13==3.4.5 in ./.venv/lib/python3.14/site-packages (from torch) (3.4.5)\n",
+      "Requirement already satisfied: triton~=3.8.0 in ./.venv/lib/python3.14/site-packages (from torch) (3.8.0)\n",
+      "Requirement already satisfied: nvidia-cublas==13.1.1.3.* in ./.venv/lib/python3.14/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.3; platform_system == \"Linux\"->torch) (13.1.1.3)\n",
+      "Requirement already satisfied: nvidia-cuda-nvrtc==13.0.88.* in ./.venv/lib/python3.14/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.3; platform_system == \"Linux\"->torch) (13.0.88)\n",
+      "Requirement already satisfied: nvidia-cuda-runtime==13.0.96.* in ./.venv/lib/python3.14/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.3; platform_system == \"Linux\"->torch) (13.0.96)\n",
+      "Requirement already satisfied: nvidia-cufft==12.0.0.61.* in ./.venv/lib/python3.14/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.3; platform_system == \"Linux\"->torch) (12.0.0.61)\n",
+      "Requirement already satisfied: nvidia-nvjitlink<14,>=13.0.88 in ./.venv/lib/python3.14/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.3; platform_system == \"Linux\"->torch) (13.4.92)\n",
+      "Requirement already satisfied: nvidia-cufile==1.15.1.6.* in ./.venv/lib/python3.14/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.3; platform_system == \"Linux\"->torch) (1.15.1.6)\n",
+      "Requirement already satisfied: nvidia-cuda-cupti==13.0.85.* in ./.venv/lib/python3.14/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.3; platform_system == \"Linux\"->torch) (13.0.85)\n",
+      "Requirement already satisfied: nvidia-curand==10.4.0.35.* in ./.venv/lib/python3.14/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.3; platform_system == \"Linux\"->torch) (10.4.0.35)\n",
+      "Requirement already satisfied: nvidia-cusolver==12.0.4.66.* in ./.venv/lib/python3.14/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.3; platform_system == \"Linux\"->torch) (12.0.4.66)\n",
+      "Requirement already satisfied: nvidia-cusparse==12.6.3.3.* in ./.venv/lib/python3.14/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.3; platform_system == \"Linux\"->torch) (12.6.3.3)\n",
+      "Requirement already satisfied: nvidia-nvtx==13.0.85.* in ./.venv/lib/python3.14/site-packages (from cuda-toolkit[cublas,cudart,cufft,cufile,cupti,curand,cusolver,cusparse,nvjitlink,nvrtc,nvtx]==13.0.3; platform_system == \"Linux\"->torch) (13.0.85)\n",
+      "Requirement already satisfied: cuda-pathfinder>=1.4.2 in ./.venv/lib/python3.14/site-packages (from cuda-bindings<14,>=13.0.3->torch) (1.8.3)\n",
+      "Requirement already satisfied: mpmath<1.4,>=1.1.0 in ./.venv/lib/python3.14/site-packages (from sympy>=1.13.3->torch) (1.3.0)\n",
+      "Requirement already satisfied: MarkupSafe>=2.0 in ./.venv/lib/python3.14/site-packages (from jinja2->torch) (3.0.4)\n",
+      "\n",
+      "\u001b[1m[\u001b[0m\u001b[34;49mnotice\u001b[0m\u001b[1;39;49m]\u001b[0m\u001b[39;49m A new release of pip is available: \u001b[0m\u001b[31;49m25.3\u001b[0m\u001b[39;49m -> \u001b[0m\u001b[32;49m26.2.2\u001b[0m\n",
+      "\u001b[1m[\u001b[0m\u001b[34;49mnotice\u001b[0m\u001b[1;39;49m]\u001b[0m\u001b[39;49m To update, run: \u001b[0m\u001b[32;49mpip install --upgrade pip\u001b[0m\n"
+     ]
+    }
+   ],
+   "source": [
+    "%pip install torch"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 19,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "⚠️ No NVIDIA driver detected or nvidia-smi unaccessible.\n",
+      "\n",
+      "🔥 PyTorch CUDA Available: False\n"
+     ]
+    }
+   ],
+   "source": [
+    "import subprocess\n",
+    "\n",
+    "try:\n",
+    "    res = subprocess.run('nvidia-smi', shell=True, capture_output=True, text=True)\n",
+    "    if res.returncode == 0:\n",
+    "        print('✅ NVIDIA GPU & Drivers Detected:')\n",
+    "        print('\\n'.join(res.stdout.split('\\n')[:10]))\n",
+    "    else:\n",
+    "        print('⚠️ No NVIDIA driver detected or nvidia-smi unaccessible.')\n",
+    "except Exception as e:\n",
+    "    print(f'⚠️ GPU Check Error: {e}')\n",
+    "\n",
+    "try:\n",
+    "    import torch\n",
+    "    print(f'\\n🔥 PyTorch CUDA Available: {torch.cuda.is_available()}')\n",
+    "    if torch.cuda.is_available():\n",
+    "        print(f'🎮 Device Name: {torch.cuda.get_device_name(0)}')\n",
+    "except ImportError:\n",
+    "    print('\\n💡 PyTorch not installed in current environment. Install with: !pip install torch')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 🖥️ Cell 3 — Start Virtual Display + XFCE4"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 44,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "✅ XFCE4 running at 1920x1080!\n"
+     ]
+    }
+   ],
+   "source": [
+    "import subprocess, os, time\n",
+    "\n",
+    "WIDTH = 1920    # Set your width\n",
+    "HEIGHT = 1080   # Set your height\n",
+    "COLOR_DEPTH = 24\n",
+    "\n",
+    "os.environ['DISPLAY'] = ':99'\n",
+    "\n",
+    "xvfb_cmd = f'Xvfb :99 -screen 0 {WIDTH}x{HEIGHT}x{COLOR_DEPTH} -ac'\n",
+    "subprocess.Popen(xvfb_cmd, shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n",
+    "time.sleep(3)\n",
+    "\n",
+    "subprocess.Popen('DISPLAY=:99 startxfce4', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n",
+    "time.sleep(6)\n",
+    "\n",
+    "print(f'✅ XFCE4 running at {WIDTH}x{HEIGHT}!')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 1,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "✅ XFCE4 running with active D-Bus session!\n"
+     ]
+    }
+   ],
+   "source": [
+    "import subprocess, os, time\n",
+    "\n",
+    "WIDTH = 1920\n",
+    "HEIGHT = 1080\n",
+    "COLOR_DEPTH = 24\n",
+    "\n",
+    "os.environ['DISPLAY'] = ':99'\n",
+    "\n",
+    "# 1. Start virtual display\n",
+    "subprocess.Popen(f'Xvfb :99 -screen 0 {WIDTH}x{HEIGHT}x{COLOR_DEPTH} -ac', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n",
+    "time.sleep(3)\n",
+    "\n",
+    "# 2. Start system D-Bus daemon if not running\n",
+    "subprocess.run('sudo service dbus start', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n",
+    "\n",
+    "# 3. Start XFCE inside an active D-Bus session\n",
+    "subprocess.Popen('DISPLAY=:99 dbus-launch --exit-with-session startxfce4', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n",
+    "time.sleep(6)\n",
+    "\n",
+    "print('✅ XFCE4 running with active D-Bus session!')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "⏳ Installing Debian Software app...\n",
+      "⏳ Starting PackageKit background service...\n",
+      "🚀 Launching Debian Software app...\n",
+      "✅ Debian Software app opened on your desktop!\n"
+     ]
+    }
+   ],
+   "source": [
+    "import subprocess, os\n",
+    "\n",
+    "# 1. Install Debian Software app & PackageKit backend\n",
+    "print('⏳ Installing Debian Software app...')\n",
+    "subprocess.run('sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq gnome-software packagekit 2>/dev/null', shell=True)\n",
+    "\n",
+    "# 2. Start PackageKit daemon manually (bypasses missing systemd in containers)\n",
+    "print('⏳ Starting PackageKit background service...')\n",
+    "subprocess.Popen('sudo /usr/lib/packagekit/packagekitd', shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n",
+    "\n",
+    "# 3. Launch Debian Software app on display :99 wrapped in D-Bus\n",
+    "print('🚀 Launching Debian Software app...')\n",
+    "subprocess.Popen('DISPLAY=:99 dbus-launch gnome-software', shell=True, env={**os.environ, 'DISPLAY': ':99'}, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n",
+    "\n",
+    "print('✅ Debian Software app opened on your desktop!')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 📡 Cell 4 — Start VNC Server"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 2,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "✅ VNC server running (password: 12345678)\n"
+     ]
+    }
+   ],
+   "source": [
+    "import subprocess, time, os\n",
+    "\n",
+    "VNC_PASSWORD = '12345678'  # Change if you want\n",
+    "home_dir = os.path.expanduser('~')\n",
+    "pass_file = os.path.join(home_dir, '.vncpasswd')\n",
+    "\n",
+    "subprocess.run(f'x11vnc -storepasswd {VNC_PASSWORD} {pass_file}', shell=True,\n",
+    "    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n",
+    "\n",
+    "subprocess.Popen(\n",
+    "    f'x11vnc -display :99 -rfbauth {pass_file} -rfbport 5900 -forever -loop -shared -noxdamage',\n",
+    "    shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n",
+    "time.sleep(2)\n",
+    "print(f'✅ VNC server running (password: {VNC_PASSWORD})')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 🖱️ Cell 5 — Start noVNC"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 3,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "✅ noVNC running on port 6080!\n",
+      "💡 VS Code Tip: You can open port 6080 directly from the VS Code Ports tab and append /vnc.html to the URL.\n"
+     ]
+    }
+   ],
+   "source": [
+    "import subprocess, time\n",
+    "subprocess.Popen('websockify --web=/usr/share/novnc/ 6080 localhost:5900', shell=True,\n",
+    "    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n",
+    "time.sleep(2)\n",
+    "print('✅ noVNC running on port 6080!')\n",
+    "print('💡 VS Code Tip: You can open port 6080 directly from the VS Code Ports tab and append /vnc.html to the URL.')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 🔗 Cell 6 — Create Public Tunnel via localhost.run (Optional)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 30,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "⏳ Starting tunnel...\n",
+      "⚠️ Public URL not ready — check Cell 7 or use VS Code Ports panel.\n"
+     ]
+    }
+   ],
+   "source": [
+    "import subprocess, time, os\n",
+    "\n",
+    "log_file = os.path.expanduser('~/tunnel.log')\n",
+    "\n",
+    "subprocess.Popen(\n",
+    "    f'ssh -o StrictHostKeyChecking=no -o ServerAliveInterval=60 -R 80:localhost:6080 nokey@localhost.run > {log_file} 2>&1',\n",
+    "    shell=True\n",
+    ")\n",
+    "\n",
+    "print('⏳ Starting tunnel...')\n",
+    "time.sleep(15)\n",
+    "\n",
+    "if os.path.exists(log_file):\n",
+    "    with open(log_file, 'r') as f:\n",
+    "        content = f.read()\n",
+    "\n",
+    "    found = False\n",
+    "    for line in content.split('\\n'):\n",
+    "        if 'localhost.run' in line and 'https://' in line:\n",
+    "            for word in line.split():\n",
+    "                if (word.startswith('https://') and 'localhost.run' in word\n",
+    "                        and not any(x in word for x in ['admin.', '/docs'])):\n",
+    "                    print('=' * 55)\n",
+    "                    print('🎉 Your remote desktop is ready!')\n",
+    "                    print(f'🌐 Open: {word.strip()}/vnc.html')\n",
+    "                    print(f'🔒 Password: {VNC_PASSWORD}')\n",
+    "                    print('=' * 55)\n",
+    "                    found = True\n",
+    "                    break\n",
+    "\n",
+    "    if not found:\n",
+    "        print('⚠️ Public URL not ready — check Cell 7 or use VS Code Ports panel.')"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 🔍 Cell 7 — Show Full Tunnel Log"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 4,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Pseudo-terminal will not be allocated because stdin is not a terminal.\n",
+      "\n",
+      "===============================================================================\n",
+      "Welcome to localhost.run!\n",
+      "\n",
+      "To set up and manage custom domains go to https://admin.localhost.run/\n",
+      "\n",
+      "More details on custom domains (and how to enable subdomains of your custom\n",
+      "domain) at https://localhost.run/docs/custom-domains\n",
+      "\n",
+      "If you get a permission denied error check the faq for how to connect with a key or\n",
+      "create a free tunnel without a key at [http://localhost:3000/docs/faq#generating-an-ssh-key].\n",
+      "\n",
+      "To explore using localhost.run visit the documentation site:\n",
+      "https://localhost.run/docs/\n",
+      "\n",
+      "===============================================================================\n",
+      "\n",
+      "\n",
+      "** your connection id is 172.166.156.105:22976, please mention it if you send me a message about an issue. **\n",
+      "\n",
+      "8bfaa796bed8fc.lhr.life tunneled with tls termination, https://8bfaa796bed8fc.lhr.life\n",
+      "create an account and add your key for a longer lasting domain name. see https://localhost.run/docs/forever-free/ for more information.\n",
+      "Open your tunnel address on your mobile with this QR:\n",
+      "\n",
+      "\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\n",
+      "e4a2758237bbd3.lhr.life tunneled with tls termination, https://e4a2758237bbd3.lhr.life\n",
+      "create an account and add your key for a longer lasting domain name. see https://localhost.run/docs/forever-free/ for more information.\n",
+      "Open your tunnel address on your mobile with this QR:\n",
+      "\n",
+      "\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[49m  \u001b[0m\u001b[49m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\u001b[7m  \u001b[0m\n",
+      "\n",
+      "\n"
+     ]
+    }
+   ],
+   "source": [
+    "import os\n",
+    "log_file = os.path.expanduser('~/tunnel.log')\n",
+    "if os.path.exists(log_file):\n",
+    "    with open(log_file, 'r') as f:\n",
+    "        print(f.read())"
+   ]
+  },
+  {
+   "cell_type": "markdown",
+   "metadata": {},
+   "source": [
+    "## 🚀 Cell 8 — Launch Brave Browser on the Desktop"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 25,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "✅ Brave launched on the desktop!\n"
+     ]
+    }
+   ],
+   "source": [
+    "import subprocess, os\n",
+    "subprocess.Popen('DISPLAY=:99 brave-browser --no-sandbox', shell=True,\n",
+    "    env={**os.environ, 'DISPLAY': ':99'},\n",
+    "    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n",
+    "print('✅ Brave launched on the desktop!')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 72,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "⏳ Setting timezone to Europe/London...\n",
+      "✅ System defaults updated! Timezone is now Europe/London and keyboard layout is set to UK.\n"
+     ]
+    }
+   ],
+   "source": [
+    "import subprocess\n",
+    "\n",
+    "# 1. Set System Timezone to Europe/London\n",
+    "print(\"⏳ Setting timezone to Europe/London...\")\n",
+    "subprocess.run(\"sudo ln -sf /usr/share/zoneinfo/Europe/London /etc/localtime\", shell=True)\n",
+    "subprocess.run(\"sudo dpkg-reconfigure -f noninteractive tzdata\", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n",
+    "\n",
+    "# 2. Set Default System Keyboard to UK (gb)\n",
+    "keyboard_config = \"\"\"XKBMODEL=\"pc105\"\n",
+    "XKBLAYOUT=\"gb\"\n",
+    "XKBVARIANT=\"\"\n",
+    "XKBOPTIONS=\"\"\n",
+    "BACKSPACE=\"guess\"\n",
+    "\"\"\"\n",
+    "with open(\"/tmp/keyboard\", \"w\") as f:\n",
+    "    f.write(keyboard_config)\n",
+    "subprocess.run(\"sudo mv /tmp/keyboard /etc/default/keyboard\", shell=True)\n",
+    "\n",
+    "# 3. Apply UK layout immediately to the running display (:99)\n",
+    "subprocess.run(\"DISPLAY=:99 setxkbmap gb\", shell=True, stderr=subprocess.DEVNULL)\n",
+    "\n",
+    "print(\"✅ System defaults updated! Timezone is now Europe/London and keyboard layout is set to UK.\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 51,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "✅ Auto-authentication enabled! Password prompts will no longer appear.\n"
+     ]
+    }
+   ],
+   "source": [
+    "import subprocess\n",
+    "\n",
+    "# 1. Create a legacy PKLA rule (for Debian/Ubuntu Polkit 0.105)\n",
+    "pkla_content = \"\"\"[Allow All Actions]\n",
+    "Identity=unix-user:*\n",
+    "Action=*\n",
+    "ResultAny=yes\n",
+    "ResultInactive=yes\n",
+    "ResultActive=yes\n",
+    "\"\"\"\n",
+    "\n",
+    "subprocess.run(\"sudo mkdir -p /etc/polkit-1/localauthority/50-local.d/\", shell=True)\n",
+    "with open(\"/tmp/45-allow-all.pkla\", \"w\") as f:\n",
+    "    f.write(pkla_content)\n",
+    "subprocess.run(\"sudo mv /tmp/45-allow-all.pkla /etc/polkit-1/localauthority/50-local.d/45-allow-all.pkla\", shell=True)\n",
+    "\n",
+    "# 2. Create a JS rule (for newer Polkit versions)\n",
+    "js_rule_content = \"\"\"polkit.addRule(function(action, subject) {\n",
+    "    return polkit.Result.YES;\n",
+    "});\n",
+    "\"\"\"\n",
+    "\n",
+    "subprocess.run(\"sudo mkdir -p /etc/polkit-1/rules.d/\", shell=True)\n",
+    "with open(\"/tmp/45-allow-all.rules\", \"w\") as f:\n",
+    "    f.write(js_rule_content)\n",
+    "subprocess.run(\"sudo mv /tmp/45-allow-all.rules /etc/polkit-1/rules.d/45-allow-all.rules\", shell=True)\n",
+    "\n",
+    "# 3. Restart Polkit service to apply changes\n",
+    "subprocess.run(\"sudo service polkit restart\", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n",
+    "\n",
+    "print(\"✅ Auto-authentication enabled! Password prompts will no longer appear.\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 52,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "E: The repository 'https://mozilla.org mozilla Release' does not have a Release file.\n"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "⏳ Installing Steam and 32-bit architecture libraries...\n",
+      "✅ Steam dependencies successfully installed!\n"
+     ]
+    }
+   ],
+   "source": [
+    "import subprocess\n",
+    "\n",
+    "# 1. Enable 32-bit architecture required by Steam\n",
+    "subprocess.run(\"sudo dpkg --add-architecture i386\", shell=True)\n",
+    "\n",
+    "# 2. Update package list with new architecture\n",
+    "subprocess.run(\"sudo DEBIAN_FRONTEND=noninteractive apt-get update -qq\", shell=True)\n",
+    "\n",
+    "# 3. Install Steam and 32-bit graphics/system dependencies\n",
+    "steam_packages = (\n",
+    "    \"steam \"\n",
+    "    \"libc6:i386 \"\n",
+    "    \"libgl1-mesa-dri:i386 \"\n",
+    "    \"libgl1-mesa-glx:i386 \"\n",
+    "    \"libglx-mesa0:i386 \"\n",
+    "    \"mesa-vulkan-drivers \"\n",
+    "    \"mesa-vulkan-drivers:i386 \"\n",
+    "    \"libgpg-error0:i386 \"\n",
+    "    \"libdbus-1-3:i386\"\n",
+    ")\n",
+    "\n",
+    "print(\"⏳ Installing Steam and 32-bit architecture libraries...\")\n",
+    "subprocess.run(f\"sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq {steam_packages} 2>/dev/null\", shell=True)\n",
+    "print(\"✅ Steam dependencies successfully installed!\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 53,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "⏳ Installing PulseAudio and volume control tools...\n",
+      "Selecting previously unselected package libatopology2t64:amd64.\n",
+      "(Reading database ... 112941 files and directories currently installed.)\n",
+      "Preparing to unpack .../libatopology2t64_1.2.11-1ubuntu0.3_amd64.deb ...\n",
+      "Unpacking libatopology2t64:amd64 (1.2.11-1ubuntu0.3) ...\n",
+      "Selecting previously unselected package alsa-utils.\n",
+      "Preparing to unpack .../alsa-utils_1.2.9-1ubuntu5_amd64.deb ...\n",
+      "Unpacking alsa-utils (1.2.9-1ubuntu5) ...\n",
+      "Setting up libatopology2t64:amd64 (1.2.11-1ubuntu0.3) ...\n",
+      "Setting up alsa-utils (1.2.9-1ubuntu5) ...\n",
+      "Processing triggers for man-db (2.12.0-4build2) ...\n",
+      "Processing triggers for libc-bin (2.39-0ubuntu8.9) ...\n",
+      "⏳ Initializing PulseAudio virtual audio sink...\n",
+      "🚀 Opening Volume Control GUI on your desktop...\n",
+      "✅ Audio control system initialized!\n"
+     ]
+    }
+   ],
+   "source": [
+    "import subprocess, os\n",
+    "\n",
+    "# 1. Install PulseAudio, ALSA utilities, and XFCE audio controls\n",
+    "print(\"⏳ Installing PulseAudio and volume control tools...\")\n",
+    "subprocess.run(\n",
+    "    \"sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq \"\n",
+    "    \"pulseaudio pavucontrol xfce4-pulseaudio-plugin alsa-utils 2>/dev/null\",\n",
+    "    shell=True\n",
+    ")\n",
+    "\n",
+    "# 2. Start PulseAudio daemon in background with a virtual dummy output\n",
+    "print(\"⏳ Initializing PulseAudio virtual audio sink...\")\n",
+    "subprocess.run(\"pulseaudio --kill\", shell=True, stderr=subprocess.DEVNULL)\n",
+    "subprocess.Popen(\n",
+    "    \"pulseaudio --start --realtime=no --exit-idle-time=-1\",\n",
+    "    shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL\n",
+    ")\n",
+    "\n",
+    "# 3. Create a dummy virtual audio output device so apps can play sound\n",
+    "subprocess.run(\n",
+    "    \"pacmd load-module module-null-sink sink_name=Virtual_Sink sink_properties=device.description='Virtual_Audio_Output'\",\n",
+    "    shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL\n",
+    ")\n",
+    "subprocess.run(\n",
+    "    \"pacmd set-default-sink Virtual_Sink\",\n",
+    "    shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL\n",
+    ")\n",
+    "\n",
+    "# 4. Launch Pavucontrol (Volume Control GUI) onto the desktop\n",
+    "print(\"🚀 Opening Volume Control GUI on your desktop...\")\n",
+    "subprocess.Popen(\n",
+    "    \"DISPLAY=:99 pavucontrol\",\n",
+    "    shell=True, env={**os.environ, \"DISPLAY\": \":99\"},\n",
+    "    stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL\n",
+    ")\n",
+    "\n",
+    "print(\"✅ Audio control system initialized!\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 59,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "⏳ Installing ffmpeg...\n",
+      "✅ Live Audio Streamer started on port 8000!\n"
+     ]
+    }
+   ],
+   "source": [
+    "import subprocess, time, os\n",
+    "\n",
+    "# 1. Install ffmpeg for live audio encoding\n",
+    "print(\"⏳ Installing ffmpeg...\")\n",
+    "subprocess.run(\"sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq ffmpeg 2>/dev/null\", shell=True)\n",
+    "\n",
+    "# 2. Create the python audio streaming server script\n",
+    "server_script = \"\"\"import http.server\n",
+    "import socketserver\n",
+    "import subprocess\n",
+    "\n",
+    "PORT = 8000\n",
+    "\n",
+    "class AudioStreamHandler(http.server.BaseHTTPRequestHandler):\n",
+    "    def do_GET(self):\n",
+    "        self.send_response(200)\n",
+    "        self.send_header('Content-Type', 'audio/mpeg')\n",
+    "        self.send_header('Cache-Control', 'no-cache, no-store, must-revalidate')\n",
+    "        self.send_header('Pragma', 'no-cache')\n",
+    "        self.send_header('Expires', '0')\n",
+    "        self.end_headers()\n",
+    "        \n",
+    "        # Capture system PulseAudio output and convert to live MP3 stream\n",
+    "        cmd = ['ffmpeg', '-f', 'pulse', '-i', 'default', '-acodec', 'libmp3lame', '-ab', '128k', '-f', 'mp3', '-']\n",
+    "        proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)\n",
+    "        \n",
+    "        try:\n",
+    "            while True:\n",
+    "                chunk = proc.stdout.read(4096)\n",
+    "                if not chunk:\n",
+    "                    break\n",
+    "                self.wfile.write(chunk)\n",
+    "        except (BrokenPipeError, ConnectionResetError):\n",
+    "            pass\n",
+    "        finally:\n",
+    "            proc.terminate()\n",
+    "\n",
+    "socketserver.TCPServer.allow_reuse_address = True\n",
+    "with socketserver.TCPServer((\"\", PORT), AudioStreamHandler) as httpd:\n",
+    "    httpd.serve_forever()\n",
+    "\"\"\"\n",
+    "\n",
+    "with open(\"/tmp/audio_server.py\", \"w\") as f:\n",
+    "    f.write(server_script)\n",
+    "\n",
+    "# 3. Kill any existing server on port 8000 and start new background audio server\n",
+    "subprocess.run(\"fuser -k 8000/tcp\", shell=True, stderr=subprocess.DEVNULL)\n",
+    "subprocess.Popen(\"python3 /tmp/audio_server.py\", shell=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)\n",
+    "time.sleep(2)\n",
+    "\n",
+    "print(\"✅ Live Audio Streamer started on port 8000!\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 6,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "🛑 All processes stopped!\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "pkill: killing pid 36 failed: Operation not permitted\n"
+     ]
+    }
+   ],
+   "source": [
+    "import subprocess\n",
+    "subprocess.run('pkill x11vnc; pkill Xvfb; pkill xfce4-session; pkill websockify; pkill ssh', shell=True)\n",
+    "print('🛑 All processes stopped!')"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 5,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "📊 Current Disk Usage:\n",
+      "Filesystem      Size  Used Avail Use% Mounted on\n",
+      "overlay          32G   26G  4.0G  87% /\n",
+      "\n",
+      "🧹 Cleaning APT package cache & unused dependencies...\n",
+      "🧹 Cleaning Python pip cache...\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "\u001b[33mWARNING: No matching packages\u001b[0m\u001b[33m\n",
+      "\u001b[0m"
+     ]
+    },
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "Files removed: 0 (0 bytes)\n",
+      "🧹 Clearing temporary files & browser/thumbnail caches...\n",
+      "\n",
+      "✅ Cleanup complete! Updated Disk Usage:\n",
+      "Filesystem      Size  Used Avail Use% Mounted on\n",
+      "overlay          32G   26G  4.3G  86% /\n"
+     ]
+    },
+    {
+     "data": {
+      "text/plain": [
+       "CompletedProcess(args='df -h /', returncode=0)"
+      ]
+     },
+     "execution_count": 5,
+     "metadata": {},
+     "output_type": "execute_result"
+    }
+   ],
+   "source": [
+    "import subprocess\n",
+    "\n",
+    "print(\"📊 Current Disk Usage:\")\n",
+    "subprocess.run(\"df -h /\", shell=True)\n",
+    "\n",
+    "print(\"\\n🧹 Cleaning APT package cache & unused dependencies...\")\n",
+    "subprocess.run(\"sudo apt-get clean\", shell=True)\n",
+    "subprocess.run(\"sudo apt-get autoremove -y -qq\", shell=True)\n",
+    "\n",
+    "print(\"🧹 Cleaning Python pip cache...\")\n",
+    "subprocess.run(\"pip cache purge\", shell=True)\n",
+    "\n",
+    "print(\"🧹 Clearing temporary files & browser/thumbnail caches...\")\n",
+    "subprocess.run(\"rm -rf ~/.cache/thumbnails/* /tmp/* 2>/dev/null\", shell=True)\n",
+    "subprocess.run(\"rm -rf ~/.cache/BraveSoftware/Brave-Browser/Default/Cache/* 2>/dev/null\", shell=True)\n",
+    "\n",
+    "# Optional: Clean HuggingFace cache if you downloaded large models\n",
+    "subprocess.run(\"rm -rf ~/.cache/huggingface 2>/dev/null\", shell=True)\n",
+    "\n",
+    "print(\"\\n✅ Cleanup complete! Updated Disk Usage:\")\n",
+    "subprocess.run(\"df -h /\", shell=True)"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": 64,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "⏳ Installing rclone...\n",
+      "✅ rclone installed! Mount point created at: /home/codespace/GoogleDrive\n"
+     ]
+    }
+   ],
+   "source": [
+    "import subprocess, os\n",
+    "\n",
+    "# 1. Install rclone\n",
+    "print(\"⏳ Installing rclone...\")\n",
+    "subprocess.run(\"sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq rclone 2>/dev/null\", shell=True)\n",
+    "\n",
+    "# 2. Create local mount directory\n",
+    "mount_path = os.path.expanduser(\"~/GoogleDrive\")\n",
+    "os.makedirs(mount_path, exist_ok=True)\n",
+    "\n",
+    "print(f\"✅ rclone installed! Mount point created at: {mount_path}\")"
+   ]
+  },
+  {
+   "cell_type": "code",
+   "execution_count": null,
+   "metadata": {},
+   "outputs": [
+    {
+     "name": "stdout",
+     "output_type": "stream",
+     "text": [
+      "🎉 Google Drive successfully mounted at /home/codespace/GoogleDrive!\n"
+     ]
+    },
+    {
+     "name": "stderr",
+     "output_type": "stream",
+     "text": [
+      "2026/10/21 14:43:04 Failed to create file system for \"gdrive:\": drive: failed when making oauth client: failed to create oauth client: empty token found - please run \"rclone config reconnect gdrive:\"\n"
+     ]
+    }
+   ],
+   "source": [
+    "import subprocess, os\n",
+    "\n",
+    "mount_path = os.path.expanduser(\"~/GoogleDrive\")\n",
+    "os.makedirs(mount_path, exist_ok=True)\n",
+    "\n",
+    "# Unmount if previously active\n",
+    "subprocess.run(f\"fusermount -u {mount_path}\", shell=True, stderr=subprocess.DEVNULL)\n",
+    "\n",
+    "# Mount drive in background\n",
+    "mount_cmd = (\n",
+    "    f\"rclone mount gdrive: {mount_path} \"\n",
+    "    \"--vfs-cache-mode full \"\n",
+    "    \"--allow-other &\"\n",
+    ")\n",
+    "\n",
+    "subprocess.Popen(mount_cmd, shell=True)\n",
+    "print(f\"🎉 Google Drive successfully mounted at {mount_path}!\")"
+   ]
+  }
+ ],
+ "metadata": {
+  "kernelspec": {
+   "display_name": ".venv (3.14.2)",
+   "language": "python",
+   "name": "python3"
+  },
+  "language_info": {
+   "codemirror_mode": {
+    "name": "ipython",
+    "version": 3
+   },
+   "file_extension": ".py",
+   "mimetype": "text/x-python",
+   "name": "python",
+   "nbconvert_exporter": "python",
+   "pygments_lexer": "ipython3",
+   "version": "3.14.2"
+  }
+ },
+ "nbformat": 4,
+ "nbformat_minor": 0
+}
