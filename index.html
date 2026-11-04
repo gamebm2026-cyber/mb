@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cloud Desktop | Codespaces Preview</title>
+    <link rel="stylesheet" href="/src/styles.css" />
+    <meta property="og:image" content="https://bolt.new/static/og_default.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:image" content="https://bolt.new/static/og_default.png">
+  </head>
+  <body>
+    <header class="topbar">
+      <div class="brand">
+        <span class="logo" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M4 5h16v11H4z M2 18h20v2H2z" /></svg>
+        </span>
+        <span class="brand-name">Cloud Desktop</span>
+        <span class="badge">Codespace</span>
+      </div>
+      <div class="top-meta">
+        <span class="status-dot" aria-hidden="true"></span>
+        <span>Not running</span>
+      </div>
+    </header>
+
+    <div class="layout">
+      <aside class="sidebar">
+        <p class="side-label">Explorer</p>
+        <ul class="file-tree">
+          <li class="file active">mb.ipynb</li>
+          <li class="file">download.py</li>
+          <li class="file">package-lock.json</li>
+          <li class="file">.gitignore</li>
+        </ul>
+      </aside>
+
+      <main class="content">
+        <section class="card hero">
+          <h1>Start a Linux desktop from mb.ipynb</h1>
+          <p class="lead">
+            Open the notebook in a Codespace or VS Code, then run the cells from top to bottom.
+            The notebook installs a full XFCE desktop, a browser, and a remote viewer you can open from any tab.
+          </p>
+        </section>
+
+        <section class="card">
+          <h2>Steps</h2>
+          <ol class="steps">
+            <li>
+              <span class="step-title">Open the notebook</span>
+              <span class="step-body">Click <code>mb.ipynb</code> in the explorer on the left.</span>
+            </li>
+            <li>
+              <span class="step-title">Run Cell 1 to install dependencies</span>
+              <span class="step-body">This takes several minutes and needs administrator access.</span>
+            </li>
+            <li>
+              <span class="step-title">Run Cells 2 to 5</span>
+              <span class="step-body">Installs the browser, starts the virtual display and desktop, then starts the remote viewer.</span>
+            </li>
+            <li>
+              <span class="step-title">Run Cell 6 for a public link (optional)</span>
+              <span class="step-body">Creates a tunnel so you can open the desktop from another device.</span>
+            </li>
+            <li>
+              <span class="step-title">Open the desktop</span>
+              <span class="step-body">Open the remote viewer link from the Ports panel once Cell 5 has finished.</span>
+            </li>
+          </ol>
+        </section>
+
+        <section class="card">
+          <h2>Notebook sections</h2>
+          <details class="section">
+            <summary>Cell 1: Install dependencies</summary>
+            <p>Installs the desktop, display server, and remote viewer packages.</p>
+          </details>
+          <details class="section">
+            <summary>Cell 2: Install Brave Browser</summary>
+            <p>Adds the Brave browser to the desktop.</p>
+          </details>
+          <details class="section">
+            <summary>Cell 3: Start virtual display and XFCE</summary>
+            <p>Starts the invisible screen and the XFCE desktop running on it.</p>
+          </details>
+          <details class="section">
+            <summary>Cell 4: Start VNC server</summary>
+            <p>Lets the remote viewer connect to the desktop screen.</p>
+          </details>
+          <details class="section">
+            <summary>Cell 5: Start noVNC</summary>
+            <p>Serves the desktop in a browser tab.</p>
+          </details>
+          <details class="section">
+            <summary>Cell 6: Public tunnel (optional)</summary>
+            <p>Creates a public web link to the desktop.</p>
+          </details>
+          <details class="section">
+            <summary>Cell 8: Launch Brave on the desktop</summary>
+            <p>Opens the browser inside the desktop.</p>
+          </details>
+        </section>
+      </main>
+    </div>
+
+  </body>
+</html>

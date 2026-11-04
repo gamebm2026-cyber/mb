@@ -1,0 +1,249 @@
+:root {
+  --bg: #1e1e1e;
+  --bg-elevated: #252526;
+  --bg-card: #2d2d30;
+  --border: #3c3c3c;
+  --text: #e6e6e6;
+  --text-muted: #a8a8a8;
+  --accent: #0e639c;
+  --accent-hover: #1177bb;
+  --accent-text: #ffffff;
+  --success: #4ec970;
+  --radius: 8px;
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  line-height: 1.5;
+  color: var(--text);
+  background: var(--bg);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+code {
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9em;
+  background: var(--bg-elevated);
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  padding: 0 4px;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 48px;
+  padding: 0 16px;
+  background: var(--bg-elevated);
+  border-bottom: 1px solid var(--border);
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.logo {
+  display: inline-flex;
+  color: #75beff;
+}
+
+.brand-name {
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.badge {
+  font-size: 12px;
+  color: var(--text-muted);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+
+.top-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--text-muted);
+}
+
+.status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #888;
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 240px 1fr;
+  min-height: calc(100vh - 48px);
+}
+
+.sidebar {
+  background: var(--bg-elevated);
+  border-right: 1px solid var(--border);
+  padding: 16px 8px;
+}
+
+.side-label {
+  margin: 0 8px 8px;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-muted);
+}
+
+.file-tree {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.file {
+  padding: 4px 8px;
+  border-radius: 4px;
+  font-size: 13px;
+  color: var(--text-muted);
+  cursor: default;
+}
+
+.file.active {
+  background: var(--bg-card);
+  color: var(--text);
+}
+
+.content {
+  padding: 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+  max-width: 880px;
+  width: 100%;
+}
+
+.card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+}
+
+.hero h1 {
+  margin: 0 0 8px;
+  font-size: 26px;
+  line-height: 1.2;
+  font-weight: 600;
+}
+
+.hero .lead {
+  margin: 0;
+  color: var(--text-muted);
+}
+
+h2 {
+  margin: 0 0 16px;
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.steps {
+  list-style: none;
+  counter-reset: step;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.steps li {
+  counter-increment: step;
+  display: grid;
+  grid-template-columns: 32px 1fr;
+  column-gap: 12px;
+  align-items: start;
+}
+
+.steps li::before {
+  content: counter(step);
+  grid-row: span 2;
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--accent);
+  color: var(--accent-text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.step-title {
+  font-weight: 600;
+}
+
+.step-body {
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+.section {
+  border-top: 1px solid var(--border);
+  padding: 12px 0;
+}
+
+.section:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.section summary {
+  cursor: pointer;
+  font-weight: 500;
+  list-style-position: inside;
+  padding: 4px 0;
+  transition: color 150ms ease;
+}
+
+.section summary:hover {
+  color: var(--success);
+}
+
+.section summary:focus-visible {
+  outline: 2px solid var(--accent-hover);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+.section p {
+  margin: 8px 0 4px 20px;
+  color: var(--text-muted);
+  font-size: 14px;
+}
+
+@media (max-width: 720px) {
+  .layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sidebar {
+    border-right: none;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .content {
+    padding: 16px;
+  }
+}
